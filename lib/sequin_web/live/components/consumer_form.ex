@@ -16,6 +16,7 @@ defmodule SequinWeb.Components.ConsumerForm do
   alias Sequin.Consumers.KafkaSink
   alias Sequin.Consumers.KinesisSink
   alias Sequin.Consumers.MeilisearchSink
+  alias Sequin.Consumers.NatsJetstreamSink
   alias Sequin.Consumers.NatsSink
   alias Sequin.Consumers.RabbitMqSink
   alias Sequin.Consumers.RedisStreamSink
@@ -44,6 +45,7 @@ defmodule SequinWeb.Components.ConsumerForm do
   alias Sequin.Sinks.Kafka
   alias Sequin.Sinks.Meilisearch.Client, as: MeilisearchClient
   alias Sequin.Sinks.Nats
+  alias Sequin.Sinks.NatsJetstream
   alias Sequin.Sinks.RabbitMq
   alias Sequin.Sinks.Redis
   alias Sequin.Sinks.Typesense.Client, as: TypesenseClient
@@ -235,6 +237,12 @@ defmodule SequinWeb.Components.ConsumerForm do
 
       :nats ->
         case test_nats_connection(socket) do
+          :ok -> {:reply, %{ok: true}, socket}
+          {:error, error} -> {:reply, %{ok: false, error: error}, socket}
+        end
+
+      :nats_jetstream ->
+        case test_nats_jetstream_connection(socket) do
           :ok -> {:reply, %{ok: true}, socket}
           {:error, error} -> {:reply, %{ok: false, error: error}, socket}
         end
@@ -592,6 +600,27 @@ defmodule SequinWeb.Components.ConsumerForm do
     end
   end
 
+  defp test_nats_jetstream_connection(socket) do
+    sink_changeset =
+      socket.assigns.changeset
+      |> Ecto.Changeset.get_field(:sink)
+      |> case do
+        %Ecto.Changeset{} = changeset -> changeset
+        %NatsJetstreamSink{} = sink -> NatsJetstreamSink.changeset(sink, %{})
+      end
+
+    if sink_changeset.valid? do
+      sink = Ecto.Changeset.apply_changes(sink_changeset)
+
+      case NatsJetstream.test_connection(sink) do
+        :ok -> :ok
+        {:error, error} -> {:error, Exception.message(error)}
+      end
+    else
+      {:error, encode_errors(sink_changeset)}
+    end
+  end
+
   defp test_azure_event_hub_connection(socket) do
     sink_changeset =
       socket.assigns.changeset
@@ -878,6 +907,22 @@ defmodule SequinWeb.Components.ConsumerForm do
     }
   end
 
+  defp decode_sink(:nats_jetstream, sink) do
+    %{
+      "type" => "nats_jetstream",
+      "host" => sink["host"],
+      "port" => sink["port"],
+      "username" => sink["username"],
+      "password" => sink["password"],
+      "jwt" => sink["jwt"],
+      "nkey_seed" => sink["nkey_seed"],
+      "tls" => sink["tls"],
+      "stream_name" => sink["stream_name"],
+      "domain" => sink["domain"],
+      "publish_timeout_ms" => sink["publish_timeout_ms"]
+    }
+  end
+
   defp decode_sink(:sequin_stream, _sink) do
     %{
       "type" => "sequin_stream"
@@ -1146,6 +1191,22 @@ defmodule SequinWeb.Components.ConsumerForm do
       "jwt" => sink.jwt,
       "nkey_seed" => sink.nkey_seed,
       "tls" => sink.tls
+    }
+  end
+
+  defp encode_sink(%NatsJetstreamSink{} = sink) do
+    %{
+      "type" => "nats_jetstream",
+      "host" => sink.host,
+      "port" => sink.port,
+      "username" => sink.username,
+      "password" => sink.password,
+      "jwt" => sink.jwt,
+      "nkey_seed" => sink.nkey_seed,
+      "tls" => sink.tls,
+      "stream_name" => sink.stream_name,
+      "domain" => sink.domain,
+      "publish_timeout_ms" => sink.publish_timeout_ms
     }
   end
 
@@ -1455,6 +1516,7 @@ defmodule SequinWeb.Components.ConsumerForm do
       :sequin_stream -> "Sequin Stream Sink"
       :gcp_pubsub -> "GCP Pub/Sub Sink"
       :nats -> "NATS Sink"
+      :nats_jetstream -> "NATS JetStream Sink"
       :rabbitmq -> "RabbitMQ Sink"
       :azure_event_hub -> "Azure Event Hub Sink"
       :typesense -> "Typesense Sink"
@@ -1487,6 +1549,7 @@ defmodule SequinWeb.Components.ConsumerForm do
         :sequin_stream -> {%SequinStreamSink{}, %{}}
         :gcp_pubsub -> {%GcpPubsubSink{}, %{message_grouping: false, batch_size: 100}}
         :nats -> {%NatsSink{}, %{}}
+        :nats_jetstream -> {%NatsJetstreamSink{}, %{}}
         :rabbitmq -> {%RabbitMqSink{virtual_host: "/"}, %{}}
         :azure_event_hub -> {%AzureEventHubSink{}, %{}}
         :typesense -> {%TypesenseSink{}, %{}}

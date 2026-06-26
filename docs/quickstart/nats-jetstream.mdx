@@ -1,0 +1,207 @@
+---
+title: 'Get started with NATS JetStream'
+sidebarTitle: 'NATS JetStream'
+description: 'Stream Postgres changes to NATS JetStream streams in minutes. Build persistent, at-least-once real-time pipelines on top of your Postgres data with NATS JetStream.'
+---
+
+import QuickstartInitialSteps from '/snippets/quickstart-initial-steps.mdx';
+import QuickstartSourceStep from '/snippets/quickstart-source-step.mdx';
+import QuickstartBackfillStep from '/snippets/quickstart-backfill-step.mdx';
+
+In this quickstart, you'll create a real-time data pipeline that streams changes from a Postgres database to a NATS JetStream stream. You'll:
+
+- Boot Sequin
+- Connect to a sample playground database
+- Configure a JetStream stream to receive database changes
+- See your changes flow in real-time
+
+By the end, you'll have hands-on experience setting up Postgres change data capture (CDC) with Sequin and NATS JetStream.
+
+<Tip>
+  This is the quickstart for streaming Postgres to NATS JetStream. See the [how-to guide](/how-to/stream-postgres-to-nats-jetstream) for an explanation of how to use the NATS JetStream sink or the [reference](/reference/sinks/nats-jetstream) for details on all configuration options.
+</Tip>
+
+<Steps titleSize="h2">
+ <Step title="Boot NATS with JetStream" icon="database">
+  If you don't already have NATS running with JetStream enabled, start it with Docker:
+
+  ```bash
+  docker run --name nats -p 4222:4222 -d nats:latest -js
+  ```
+
+  Then create a stream to capture Sequin messages:
+
+  ```bash
+  docker run --rm --network host natsio/nats-box:latest \
+    nats stream add SEQUIN \
+      --subjects "sequin.>" \
+      --storage file \
+      --replicas 1 \
+      --retention limits \
+      --defaults
+  ```
+
+  <Note>
+    If you're using an existing NATS server, ensure JetStream is enabled and you have the connection details ready.
+  </Note>
+ </Step>
+
+ <QuickstartInitialSteps />
+
+ <Step title="Subscribe to your JetStream stream" icon="eye">
+  Before creating the sink, set up a consumer to watch for messages:
+
+  ```bash
+  # Run commands one at a time to subscribe successfully
+  docker run --rm -it --network host natsio/nats-box:latest
+  
+  nats consumer add SEQUIN quickstart --pull --deliver all --filter "sequin.>" --defaults
+  
+  nats consumer next SEQUIN quickstart --count 100 --wait 60s
+  ```
+
+  Keep this terminal open — you'll see messages start flowing once we create the sink.
+ </Step>
+
+ <Step title="Create a NATS JetStream Sink" icon="database">
+  With the playground database connected, you can create a [sink](/reference/sinks/overview). This sink will send changes to the `products` table to your JetStream stream:
+
+  <Steps>
+    <Step title="Navigate to Sinks">
+      Click "Sinks" in the sidebar navigation, then click "Create Sink".
+    </Step>
+
+    <Step title="Select sink type">
+      Select "NATS JetStream" as the sink type and click "Continue".
+    </Step>
+
+    <QuickstartSourceStep />
+    <QuickstartBackfillStep />
+
+    <Step title='Configure "NATS JetStream Configuration"'>
+      In the "NATS JetStream Configuration" card, enter your connection details:
+
+      - **Host**: If running NATS and Sequin locally with Docker, use `host.docker.internal`
+      - **Port**: The port NATS is listening on (default: `4222`)
+      - **Stream Name**: `SEQUIN` (the stream we created above)
+      - **Domain**: (Optional) Use for NATS Leaf Node disambiguation
+      - **Username**: (Optional) Your NATS username if authentication is enabled
+      - **Password**: (Optional) Your NATS password if authentication is enabled
+      - **JWT**: (Optional) Your NATS JWT if authentication is enabled
+      - **NKey Seed**: (Optional) Your NATS NKey seed if NKey authentication is enabled
+      - **TLS**: Enable TLS/SSL for secure connection (default: disabled)
+    </Step>
+
+    <Step title="Test the connection">
+      At the bottom of the form, click the "Test Connection" button. Sequin will verify connectivity and JetStream is enabled.
+
+      <Check>
+        Sequin can connect to your NATS server and JetStream is enabled.
+      </Check>
+    </Step>
+
+    <Step title="Create the sink">
+      You can leave the rest of the defaults. As configured, the JetStream stream will first receive a backfill of all rows currently in the `products` table. Then, it will receive all changes to the `products` table in real-time.
+
+      Click "Create Sink" to finish setting up your NATS JetStream sink.
+
+      <Note>
+      If the stream does not exist, it will be created when the pipeline starts for the first time.
+      </Note>
+    </Step>
+  </Steps>
+ </Step>
+
+  <Step title="See changes flow to your JetStream stream" icon="waveform-lines">
+    On the new sink's overview page, you should see the "Health" status turn green, indicating data is flowing to your JetStream stream.
+
+    Let's confirm messages are flowing:
+
+    <Steps>
+    <Step title="Messages tab">
+      Click the "Messages" tab. You'll see a list of the recently delivered messages.
+
+      <Check>
+        Sequin indicates it backfilled the `products` table to your JetStream stream.
+      </Check>
+    </Step>
+      <Step title="Check your JetStream consumer">
+        Return to the terminal where you started the NATS consumer earlier. You should see the messages that were sent from Sequin.
+
+        These are [`read` events](/reference/messages) from the initial backfill of the `products` table.
+
+        <Check>
+          Messages are flowing from Sequin to your NATS JetStream stream.
+        </Check>
+      </Step>
+
+      <Step title="Make some changes">
+        Let's make some changes to the `products` table and see them flow to your stream.
+
+        In your terminal, run the following command to insert a new row into the `products` table:
+
+        ```bash
+        docker exec -i sequin-sequin_postgres-1 \
+          psql -U postgres -d sequin_playground -c \
+          "insert into products (name, price) values ('Organic Honey (16 oz)', 12.99);"
+        ```
+
+        In your NATS consumer terminal, you should see a message corresponding to the inserted row.
+
+        Feel free to try other changes:
+
+        <AccordionGroup>
+          <Accordion title="Update a product's price">
+            ```bash
+            docker exec -i sequin-sequin_postgres-1 \
+              psql -U postgres -d sequin_playground -c \
+              "update products set price = 7.99 where name = 'Avocados (3 pack)';"
+            ```
+          </Accordion>
+
+          <Accordion title="Change a product's name">
+            ```bash
+            docker exec -i sequin-sequin_postgres-1 \
+              psql -U postgres -d sequin_playground -c \
+              "update products set name = 'Organic Avocados (3 pack)' where name = 'Avocados (3 pack)';"
+            ```
+          </Accordion>
+
+          <Accordion title="Delete a product">
+            ```bash
+            docker exec -i sequin-sequin_postgres-1 \
+              psql -U postgres -d sequin_playground -c \
+              "delete from products where name = 'Blueberries (6 oz)';"
+            ```
+          </Accordion>
+        </AccordionGroup>
+
+        Each change will appear in your JetStream stream within a few seconds.
+      </Step>
+    </Steps>
+  </Step>
+</Steps>
+
+<Check>
+  Great work!
+</Check>
+
+You've successfully:
+
+- Set up a complete Postgres change data capture pipeline with at-least-once delivery
+- Loaded existing data through a backfill
+- Made changes to the `products` table
+- Verified changes are flowing to your NATS JetStream stream
+
+## Ready to stream
+
+Now you're ready to connect your own database to Sequin and start streaming changes:
+
+<CardGroup cols={2}>
+  <Card title="Guide: Connect Postgres" icon="elephant" href="/connect-postgres">
+    Connect your Postgres database to Sequin.
+  </Card>
+  <Card title="Guide: Setting up a NATS JetStream sink" icon="database" href="/how-to/stream-postgres-to-nats-jetstream">
+    Setup a NATS JetStream sink to send changes to your stream.
+  </Card>
+</CardGroup>

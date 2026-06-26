@@ -5,7 +5,8 @@ defmodule Sequin.Sinks.Nats.ConnectionCache do
   By caching these connections, we can avoid paying a significant startup
   penalty when performing multiple operations on the same NATS instance.
 
-  Each `Sequin.Consumers.NatsSink` gets its own connection in the cache.
+  Each `Sequin.Consumers.NatsSink` or `Sequin.Consumers.NatsJetstreamSink`
+  gets its own connection in the cache.
 
   The cache takes ownership of the NATS connections and is responsible for
   closing them when they are invalidated (or when the cache is stopped). Thus,
@@ -19,6 +20,7 @@ defmodule Sequin.Sinks.Nats.ConnectionCache do
 
   use GenServer
 
+  alias Sequin.Consumers.NatsJetstreamSink
   alias Sequin.Consumers.NatsSink
 
   require Logger
@@ -26,7 +28,7 @@ defmodule Sequin.Sinks.Nats.ConnectionCache do
   defmodule Cache do
     @moduledoc false
 
-    @type sink :: NatsSink.t()
+    @type sink :: NatsSink.t() | NatsJetstreamSink.t()
     @type entry :: %{
             conn: pid() | atom(),
             options_hash: binary()
@@ -85,9 +87,10 @@ defmodule Sequin.Sinks.Nats.ConnectionCache do
     @moduledoc false
     use TypedStruct
 
+    alias Sequin.Consumers.NatsJetstreamSink
     alias Sequin.Consumers.NatsSink
 
-    @type sink :: NatsSink.t()
+    @type sink :: NatsSink.t() | NatsJetstreamSink.t()
     @type opt :: {:start_fn, State.start_function()} | {:stop_fn, State.stop_function()}
     @type start_function :: (sink() -> start_result())
     @type start_result ::
@@ -151,7 +154,7 @@ defmodule Sequin.Sinks.Nats.ConnectionCache do
       %{state | cache: new_cache}
     end
 
-    defp default_start(%NatsSink{} = sink) do
+    defp default_start(sink) do
       %{host: sink.host, port: sink.port}
       |> put_opt_key(:username, sink.username)
       |> put_opt_key(:password, sink.password)
@@ -164,6 +167,10 @@ defmodule Sequin.Sinks.Nats.ConnectionCache do
 
     defp put_ipv6(opts, %NatsSink{} = sink) do
       if NatsSink.ipv6?(sink), do: Map.put(opts, :tcp_opts, [:inet6, :binary]), else: opts
+    end
+
+    defp put_ipv6(opts, %NatsJetstreamSink{} = sink) do
+      if NatsJetstreamSink.ipv6?(sink), do: Map.put(opts, :tcp_opts, [:inet6, :binary]), else: opts
     end
 
     defp put_tls(opts, true) do
@@ -183,7 +190,7 @@ defmodule Sequin.Sinks.Nats.ConnectionCache do
     end
   end
 
-  @type sink :: NatsSink.t()
+  @type sink :: NatsSink.t() | NatsJetstreamSink.t()
   @type opt :: State.opt()
   @type start_result :: State.start_result()
 
@@ -195,18 +202,18 @@ defmodule Sequin.Sinks.Nats.ConnectionCache do
 
   @spec connection(sink()) :: start_result()
   @spec connection(GenServer.server(), sink()) :: start_result()
-  def connection(server \\ __MODULE__, %NatsSink{} = sink) do
+  def connection(server \\ __MODULE__, sink) do
     GenServer.call(server, {:connection, sink, true})
   end
 
   @spec invalidate_connection(GenServer.server(), sink()) :: :ok
-  def invalidate_connection(server \\ __MODULE__, %NatsSink{} = sink) do
+  def invalidate_connection(server \\ __MODULE__, sink) do
     GenServer.cast(server, {:invalidate_connection, sink})
   end
 
   # This function is intended for test purposes only
   @spec cache_connection(GenServer.server(), sink(), pid()) :: :ok
-  def cache_connection(server \\ __MODULE__, %NatsSink{} = sink, conn) do
+  def cache_connection(server \\ __MODULE__, sink, conn) do
     GenServer.call(server, {:cache_connection, sink, conn})
   end
 
@@ -218,7 +225,7 @@ defmodule Sequin.Sinks.Nats.ConnectionCache do
   end
 
   @impl GenServer
-  def handle_call({:connection, %NatsSink{} = sink, create_on_miss}, _from, %State{} = state) do
+  def handle_call({:connection, sink, create_on_miss}, _from, %State{} = state) do
     case State.find_or_create_connection(state, sink, create_on_miss) do
       {:ok, conn, new_state} ->
         {:reply, {:ok, conn}, new_state}
@@ -233,14 +240,14 @@ defmodule Sequin.Sinks.Nats.ConnectionCache do
 
   # This function is intended for test purposes only
   @impl GenServer
-  def handle_call({:cache_connection, %NatsSink{} = sink, conn}, _from, %State{} = state) do
+  def handle_call({:cache_connection, sink, conn}, _from, %State{} = state) do
     new_cache = Cache.store(state.cache, sink, conn)
     new_state = %{state | cache: new_cache}
     {:reply, :ok, new_state}
   end
 
   @impl GenServer
-  def handle_cast({:invalidate_connection, %NatsSink{} = sink}, %State{} = state) do
+  def handle_cast({:invalidate_connection, sink}, %State{} = state) do
     new_state = State.invalidate_connection(state, sink)
     {:noreply, new_state}
   end

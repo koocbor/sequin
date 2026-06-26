@@ -16,6 +16,7 @@ defmodule Sequin.Factory.ConsumersFactory do
   alias Sequin.Consumers.KafkaSink
   alias Sequin.Consumers.KinesisSink
   alias Sequin.Consumers.MeilisearchSink
+  alias Sequin.Consumers.NatsJetstreamSink
   alias Sequin.Consumers.NatsSink
   alias Sequin.Consumers.RabbitMqSink
   alias Sequin.Consumers.RedisStreamSink
@@ -267,6 +268,18 @@ defmodule Sequin.Factory.ConsumersFactory do
         type: :nats,
         host: "localhost",
         port: 4222
+      },
+      attrs
+    )
+  end
+
+  defp sink(:nats_jetstream, _account_id, attrs) do
+    merge_attributes(
+      %NatsJetstreamSink{
+        type: :nats_jetstream,
+        host: "localhost",
+        port: 4222,
+        stream_name: "sequin"
       },
       attrs
     )

@@ -21,6 +21,7 @@ defmodule SequinWeb.SinkConsumersLive.Show do
   alias Sequin.Consumers.KafkaSink
   alias Sequin.Consumers.KinesisSink
   alias Sequin.Consumers.MeilisearchSink
+  alias Sequin.Consumers.NatsJetstreamSink
   alias Sequin.Consumers.NatsSink
   alias Sequin.Consumers.PathFunction
   alias Sequin.Consumers.RabbitMqSink
@@ -972,6 +973,23 @@ defmodule SequinWeb.SinkConsumersLive.Show do
     }
   end
 
+  defp encode_sink(%SinkConsumer{sink: %NatsJetstreamSink{} = sink}) do
+    %{
+      type: :nats_jetstream,
+      host: sink.host,
+      port: sink.port,
+      username: sink.username,
+      password: sink.password,
+      tls: sink.tls,
+      nkey_seed: sink.nkey_seed,
+      jwt: sink.jwt,
+      stream_name: sink.stream_name,
+      domain: sink.domain,
+      publish_timeout_ms: sink.publish_timeout_ms,
+      connection_id: sink.connection_id
+    }
+  end
+
   defp encode_sink(%SinkConsumer{sink: %RabbitMqSink{} = sink} = consumer) do
     database_name = consumer.postgres_database.name
 
@@ -1402,6 +1420,7 @@ defmodule SequinWeb.SinkConsumersLive.Show do
   defp consumer_title(%{sink: %{type: :http_push}}), do: "Webhook Sink"
   defp consumer_title(%{sink: %{type: :kafka}}), do: "Kafka Sink"
   defp consumer_title(%{sink: %{type: :nats}}), do: "NATS Sink"
+  defp consumer_title(%{sink: %{type: :nats_jetstream}}), do: "NATS JetStream Sink"
   defp consumer_title(%{sink: %{type: :rabbitmq}}), do: "RabbitMQ Sink"
   defp consumer_title(%{sink: %{type: :redis_stream}}), do: "Redis Stream Sink"
   defp consumer_title(%{sink: %{type: :redis_string}}), do: "Redis String Sink"

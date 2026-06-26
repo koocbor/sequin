@@ -85,6 +85,7 @@ defmodule Sequin.Runtime.Routing do
       :redis_string -> Sequin.Runtime.Routing.Consumers.RedisString
       :redis_stream -> Sequin.Runtime.Routing.Consumers.RedisStream
       :nats -> Sequin.Runtime.Routing.Consumers.Nats
+      :nats_jetstream -> Sequin.Runtime.Routing.Consumers.NatsJetstream
       :kafka -> Sequin.Runtime.Routing.Consumers.Kafka
       :gcp_pubsub -> Sequin.Runtime.Routing.Consumers.GcpPubsub
       :s2 -> Sequin.Runtime.Routing.Consumers.S2

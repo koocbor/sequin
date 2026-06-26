@@ -10,6 +10,10 @@ Mox.defmock(Sequin.Sinks.NatsMock,
   for: Sequin.Sinks.Nats
 )
 
+Mox.defmock(Sequin.Sinks.NatsJetstreamMock,
+  for: Sequin.Sinks.NatsJetstream
+)
+
 Mox.defmock(Sequin.Sinks.RabbitMqMock,
   for: Sequin.Sinks.RabbitMq
 )

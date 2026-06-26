@@ -113,6 +113,7 @@ config :sequin,
   redis_module: Sequin.Sinks.RedisMock,
   kafka_module: Sequin.Sinks.KafkaMock,
   nats_module: Sequin.Sinks.NatsMock,
+  nats_jetstream_module: Sequin.Sinks.NatsJetstreamMock,
   rabbitmq_module: Sequin.Sinks.RabbitMqMock,
   aws_module: Sequin.AwsMock,
   # Arbitrarily high memory limit for testing

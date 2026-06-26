@@ -30,6 +30,7 @@
   import GcpPubsubSinkForm from "$lib/sinks/gcp_pubsub/GcpPubsubSinkForm.svelte";
   import SequinStreamSinkForm from "$lib/sinks/sequin_stream/SequinStreamSinkForm.svelte";
   import NatsSinkForm from "$lib/sinks/nats/NatsSinkForm.svelte";
+  import NatsJetstreamSinkForm from "$lib/sinks/nats_jetstream/NatsJetstreamSinkForm.svelte";
   import RabbitMqSinkForm from "$lib/sinks/rabbitmq/RabbitMqSinkForm.svelte";
   import AzureEventHubSinkForm from "$lib/sinks/azure_event_hub/AzureEventHubSinkForm.svelte";
   import { CircleAlert, Info, Plus } from "lucide-svelte";
@@ -746,6 +747,14 @@
       <SequinStreamSinkForm errors={errors.consumer} bind:form />
     {:else if consumer.type === "nats"}
       <NatsSinkForm
+        errors={errors.consumer}
+        bind:form
+        {functions}
+        {refreshFunctions}
+        bind:functionRefreshState
+      />
+    {:else if consumer.type === "nats_jetstream"}
+      <NatsJetstreamSinkForm
         errors={errors.consumer}
         bind:form
         {functions}

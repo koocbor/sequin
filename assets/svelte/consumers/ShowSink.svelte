@@ -22,6 +22,7 @@
     SequinStreamConsumer,
     GcpPubsubConsumer,
     NatsConsumer,
+    NatsJetstreamConsumer,
     RabbitMqConsumer,
     TypesenseConsumer,
     ElasticsearchConsumer,
@@ -34,6 +35,7 @@
   import KafkaSinkCard from "../sinks/kafka/KafkaSinkCard.svelte";
   import KinesisSinkCard from "../sinks/kinesis/KinesisSinkCard.svelte";
   import NatsSinkCard from "../sinks/nats/NatsSinkCard.svelte";
+  import NatsJetstreamSinkCard from "../sinks/nats_jetstream/NatsJetstreamSinkCard.svelte";
   import RabbitMqSinkCard from "../sinks/rabbitmq/RabbitMqSinkCard.svelte";
   import RedisStreamSinkCard from "../sinks/redis-stream/RedisStreamSinkCard.svelte";
   import RedisStringSinkCard from "../sinks/redis-string/RedisStringSinkCard.svelte";
@@ -141,6 +143,12 @@
 
   function isNatsConsumer(consumer: Consumer): consumer is NatsConsumer {
     return consumer.sink.type === "nats";
+  }
+
+  function isNatsJetstreamConsumer(
+    consumer: Consumer,
+  ): consumer is NatsJetstreamConsumer {
+    return consumer.sink.type === "nats_jetstream";
   }
 
   function isGcpPubsubConsumer(
@@ -1246,6 +1254,8 @@
         <SequinStreamSinkCard {consumer} {apiBaseUrl} {apiTokens} />
       {:else if isNatsConsumer(consumer)}
         <NatsSinkCard {consumer} />
+      {:else if isNatsJetstreamConsumer(consumer)}
+        <NatsJetstreamSinkCard {consumer} />
       {:else if isRabbitMqConsumer(consumer)}
         <RabbitMqSinkCard {consumer} />
       {:else if isTypesenseConsumer(consumer)}

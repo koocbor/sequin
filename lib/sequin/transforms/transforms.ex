@@ -16,6 +16,7 @@ defmodule Sequin.Transforms do
   alias Sequin.Consumers.KafkaSink
   alias Sequin.Consumers.KinesisSink
   alias Sequin.Consumers.MeilisearchSink
+  alias Sequin.Consumers.NatsJetstreamSink
   alias Sequin.Consumers.NatsSink
   alias Sequin.Consumers.PathFunction
   alias Sequin.Consumers.RabbitMqSink
@@ -382,6 +383,22 @@ defmodule Sequin.Transforms do
       jwt: SensitiveValue.new(sink.jwt, show_sensitive),
       nkey_seed: SensitiveValue.new(sink.nkey_seed, show_sensitive),
       tls: sink.tls
+    })
+  end
+
+  def to_external(%NatsJetstreamSink{} = sink, show_sensitive) do
+    reject_nil_values(%{
+      type: "nats_jetstream",
+      host: sink.host,
+      port: sink.port,
+      username: sink.username,
+      password: SensitiveValue.new(sink.password, show_sensitive),
+      jwt: SensitiveValue.new(sink.jwt, show_sensitive),
+      nkey_seed: SensitiveValue.new(sink.nkey_seed, show_sensitive),
+      tls: sink.tls,
+      stream_name: sink.stream_name,
+      domain: sink.domain,
+      publish_timeout_ms: sink.publish_timeout_ms
     })
   end
 
@@ -1267,6 +1284,23 @@ defmodule Sequin.Transforms do
        jwt: attrs["jwt"],
        nkey_seed: attrs["nkey_seed"],
        tls: attrs["tls"] || false
+     }}
+  end
+
+  defp parse_sink(%{"type" => "nats_jetstream"} = attrs, _resources) do
+    {:ok,
+     %{
+       type: :nats_jetstream,
+       host: attrs["host"],
+       port: attrs["port"],
+       username: attrs["username"],
+       password: attrs["password"],
+       jwt: attrs["jwt"],
+       nkey_seed: attrs["nkey_seed"],
+       tls: attrs["tls"] || false,
+       stream_name: attrs["stream_name"],
+       domain: attrs["domain"],
+       publish_timeout_ms: attrs["publish_timeout_ms"]
      }}
   end
 

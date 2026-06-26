@@ -1,0 +1,148 @@
+---
+title: "How to stream Postgres to NATS JetStream"
+sidebarTitle: "NATS JetStream"
+description: "Build persistent, event-driven applications with NATS JetStream and Postgres change data capture (CDC). Stream database changes to persistent JetStream streams for at-least-once delivery."
+---
+
+This guide shows you how to set up Postgres change data capture (CDC) and stream changes to NATS JetStream using Sequin.
+
+With Postgres data streaming to NATS JetStream, you can build durable pipelines that survive consumer downtime, trigger workflows, keep services in sync, [build audit logs](/how-to/create-audit-logs), [maintain caches](/how-to/maintain-caches), and more.
+
+By the end of this how-to, you'll have database changes flowing into a persistent NATS JetStream stream.
+
+<Tip>
+  This is the how-to guide for streaming Postgres to NATS JetStream. See the [quickstart](/quickstart/nats-jetstream) for a step-by-step walkthrough or the [reference](/reference/sinks/nats-jetstream) for details on all configuration options.
+</Tip>
+
+## Prerequisites
+
+If you're self-hosting Sequin, you'll need:
+
+1. [Sequin installed](/running-sequin)
+2. [A database connected](/connect-postgres)
+3. A NATS server with JetStream enabled
+
+## Basic setup
+
+### Prepare your NATS server
+
+You'll need a NATS server with JetStream enabled. You can use a local server for development or a cloud-hosted NATS service in production.
+
+#### Local development with Docker
+
+Start a NATS server with JetStream enabled:
+
+```bash
+docker run --name nats -p 4222:4222 -d nats:latest -js
+```
+
+#### Create a JetStream stream
+
+Before creating the Sequin sink, create a JetStream stream to capture the messages. Using the NATS CLI:
+
+```bash
+nats stream add SEQUIN \
+  --subjects "sequin.>" \
+  --storage file \
+  --replicas 1 \
+  --retention limits \
+  --max-msgs=-1 \
+  --max-bytes=-1 \
+  --max-age=0 \
+  --discard old
+```
+
+This creates a stream named `SEQUIN` that captures all subjects matching `sequin.>`.
+
+## Create NATS JetStream sink
+
+Navigate to the "Sinks" tab, click "Create Sink", and select "NATS JetStream Sink".
+
+### Configure the source
+
+<Steps>
+  <Step title="Select source tables">
+    Under "Source", select the schemas and tables you want to stream data from.
+  </Step>
+
+  <Step title="Add filters (optional)">
+    Add [filters](/reference/filters) to the sink to control which database changes are sent to your stream.
+  </Step>
+
+  <Step title="Add transform (optional)">
+    Add a [transform](/reference/transforms) to the sink to modify the payload before it's sent to JetStream.
+  </Step>
+
+  <Step title="Specify backfill">
+    You can optionally indicate if you want JetStream to receive a [backfill](/reference/backfills) of all or a portion of the table's existing data.
+
+    You can backfill at any time. If you don't want to backfill, toggle "Backfill" off.
+  </Step>
+
+  <Step title="Specify message grouping">
+    Under "Message grouping", leave the default option selected to ensure events for the same row are sent to JetStream in order.
+  </Step>
+</Steps>
+
+### Configure NATS JetStream
+
+<Steps>
+  <Step title="Enter connection details">
+    Fill in your NATS connection details:
+
+    - **Host** (required): The hostname of your NATS server (e.g., `localhost` or `nats.example.com`)
+    - **Port** (required): The port number (default: `4222`)
+    - **Stream Name** (optional): The name of your JetStream stream. Sequin ensures the stream exists when the sink is enabled. If not set, the default `SEQUIN` is used.
+    - **Domain** (optional): The JetStream domain, if using leaf nodes or a specific domain.
+    - **Publish Timeout** (optional): Milliseconds to wait for a JetStream publish acknowledgment (default: `5000`).
+  </Step>
+
+  <Step title="Test the connection">
+    Click "Test Connection". Sequin will verify both connectivity and that JetStream is enabled.
+  </Step>
+
+  <Step title="Create the sink">
+    Give your sink a name, then click "Create NATS JetStream Sink".
+  </Step>
+</Steps>
+
+## Verify & debug
+
+To verify that your NATS JetStream sink is working:
+
+1. Subscribe to your stream using the NATS CLI:
+   ```bash
+   nats consumer add SEQUIN my-consumer --pull --deliver all --filter "sequin.>"
+   nats consumer next SEQUIN my-consumer --count 10
+   ```
+2. Make some changes in your source table
+3. Verify that the message count for your sink increases in the Sequin web console
+4. Verify that the messages appear in your JetStream consumer
+
+If messages don't seem to be flowing:
+
+1. Click the "Messages" tab to view the state of messages for your sink
+2. Click any failed message
+3. Check the delivery logs for error details, including JetStream publish errors
+
+Common issues to check:
+- NATS server is running with JetStream enabled (`-js` flag)
+- The stream exists and its subject filter matches `sequin.>` (or your configured subjects)
+- Host and port are correct
+- Network connectivity between Sequin and NATS
+
+## Next steps
+
+- **Set up a consumer**
+
+   Now that your Postgres data is flowing into a JetStream stream, set up a pull or push consumer to process the messages. See the [NATS JetStream documentation](https://docs.nats.io/nats-concepts/jetstream) for details.
+
+   Refer to the [NATS JetStream sink reference](/reference/sinks/nats-jetstream) for the shape of messages that Sequin will publish.
+
+- **Deploy your implementation**
+
+   When you're ready to deploy, see "[How to deploy to production](/how-to/deploy-to-production)".
+
+- **Advanced configuration**
+
+   For more about how NATS JetStream sinks work, see the [NATS JetStream sink reference](/reference/sinks/nats-jetstream).

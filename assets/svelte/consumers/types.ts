@@ -138,6 +138,23 @@ export type NatsConsumer = BaseConsumer & {
   };
 };
 
+// NATS JetStream specific sink
+export type NatsJetstreamConsumer = BaseConsumer & {
+  sink: {
+    type: "nats_jetstream";
+    host: string;
+    port: number;
+    stream_name: string;
+    domain: string;
+    publish_timeout_ms: number;
+    username: string;
+    password: string;
+    jwt: string;
+    nkey_seed: string;
+    tls: boolean;
+  };
+};
+
 // Azure Event Hub specific sink
 export type AzureEventHubConsumer = BaseConsumer & {
   sink: {
@@ -260,6 +277,7 @@ export type Consumer =
   | SequinStreamConsumer
   | GcpPubsubConsumer
   | NatsConsumer
+  | NatsJetstreamConsumer
   | AzureEventHubConsumer
   | RabbitMqConsumer
   | TypesenseConsumer
@@ -278,6 +296,7 @@ export const SinkTypeValues = [
   "gcp_pubsub",
   "elasticsearch",
   "nats",
+  "nats_jetstream",
   "rabbitmq",
   "typesense",
   "meilisearch",
@@ -292,6 +311,7 @@ export const RoutedSinkTypeValues = [
   "redis_string",
   "redis_stream",
   "nats",
+  "nats_jetstream",
   "kafka",
   "gcp_pubsub",
   "typesense",

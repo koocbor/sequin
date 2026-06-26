@@ -28,6 +28,7 @@
   import GcpPubsubIcon from "../sinks/gcp_pubsub/GcpPubsubIcon.svelte";
   import SequinStreamIcon from "../sinks/sequin_stream/SequinStreamIcon.svelte";
   import NatsIcon from "../sinks/nats/NatsIcon.svelte";
+  import NatsJetstreamIcon from "../sinks/nats_jetstream/NatsJetstreamIcon.svelte";
   import RabbitMqIcon from "../sinks/rabbitmq/RabbitMqIcon.svelte";
 
   import TypesenseIcon from "../sinks/typesense/TypesenseIcon.svelte";
@@ -54,6 +55,7 @@
       | "gcp_pubsub"
       | "sequin_stream"
       | "nats"
+      | "nats_jetstream"
       | "rabbitmq"
       | "typesense"
       | "elasticsearch";
@@ -138,6 +140,11 @@
       id: "nats",
       name: "NATS",
       icon: NatsIcon,
+    },
+    {
+      id: "nats_jetstream",
+      name: "NATS JetStream",
+      icon: NatsJetstreamIcon,
     },
     {
       id: "rabbitmq",

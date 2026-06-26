@@ -19,6 +19,7 @@ defmodule Sequin.Consumers.SinkConsumer do
   alias Sequin.Consumers.KafkaSink
   alias Sequin.Consumers.KinesisSink
   alias Sequin.Consumers.MeilisearchSink
+  alias Sequin.Consumers.NatsJetstreamSink
   alias Sequin.Consumers.NatsSink
   alias Sequin.Consumers.RabbitMqSink
   alias Sequin.Consumers.RedisStreamSink
@@ -47,6 +48,7 @@ defmodule Sequin.Consumers.SinkConsumer do
     :sequin_stream,
     :gcp_pubsub,
     :nats,
+    :nats_jetstream,
     :rabbitmq,
     :azure_event_hub,
     :typesense,
@@ -132,6 +134,7 @@ defmodule Sequin.Consumers.SinkConsumer do
         sequin_stream: SequinStreamSink,
         gcp_pubsub: GcpPubsubSink,
         nats: NatsSink,
+        nats_jetstream: NatsJetstreamSink,
         rabbitmq: RabbitMqSink,
         azure_event_hub: AzureEventHubSink,
         typesense: TypesenseSink,

@@ -83,6 +83,22 @@ export const routedSinkDocs: Record<RoutedSinkType, RoutedSinkDocs> = {
       },
     },
   },
+  nats_jetstream: {
+    fields: {
+      subject: {
+        description: "The NATS JetStream subject to publish messages to",
+        staticValue:
+          "sequin.<database_name>.<table_schema>.<table_name>.<action>",
+        dynamicDefault:
+          "sequin.<database_name>.<table_schema>.<table_name>.<action>",
+      },
+      headers: {
+        description: "Map of key value pairs",
+        staticValue: '%{"Nats-Msg-Id" => <idempotency-key>}',
+        dynamicDefault: '%{"Nats-Msg-Id" => <idempotency-key>}',
+      },
+    },
+  },
   kafka: {
     fields: {
       topic: {

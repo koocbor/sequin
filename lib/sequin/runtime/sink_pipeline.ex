@@ -444,6 +444,7 @@ defmodule Sequin.Runtime.SinkPipeline do
       :kafka -> Sequin.Runtime.KafkaPipeline
       :kinesis -> Sequin.Runtime.KinesisPipeline
       :nats -> Sequin.Runtime.NatsPipeline
+      :nats_jetstream -> Sequin.Runtime.NatsJetstreamPipeline
       :rabbitmq -> Sequin.Runtime.RabbitMqPipeline
       :redis_stream -> Sequin.Runtime.RedisStreamPipeline
       :redis_string -> Sequin.Runtime.RedisStringPipeline

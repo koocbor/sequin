@@ -1,0 +1,105 @@
+---
+title: "NATS JetStream sink"
+sidebarTitle: "NATS JetStream sink"
+description: "Reference for configuring and using the NATS JetStream sink with Sequin."
+---
+
+The NATS JetStream sink publishes messages to NATS JetStream streams with at-least-once delivery guarantees.
+
+<Tip>
+  This is the reference for the NATS JetStream sink. See the [quickstart](/quickstart/nats-jetstream) for a step-by-step walkthrough or the [how-to guide](/how-to/stream-postgres-to-nats-jetstream) for an explanation of how to use the NATS JetStream sink.
+</Tip>
+
+## Configuration
+
+- **Host**
+
+    The hostname of your NATS server (e.g., `localhost`).
+
+- **Port**
+
+    The port number for your NATS server (default: `4222`).
+
+- **Stream Name** (optional)
+
+    The name of the JetStream stream to publish to (default: `SEQUIN`). If the stream does not exist, Sequin will create it automatically with a subject filter of `sequin.>` when the sink is first enabled.
+
+- **Domain** (optional)
+
+    The JetStream domain, used when connecting to JetStream via leaf nodes or a specific domain.
+
+- **Publish Timeout** (optional)
+
+    The timeout in milliseconds to wait for a JetStream publish acknowledgment (default: `5000`). If the stream does not acknowledge the message within this time, Sequin will retry.
+
+- **Username** (optional)
+
+    Username for authentication with the NATS server.
+
+- **Password** (optional)
+
+    Password for authentication with the NATS server.
+
+- **JWT** (optional)
+
+    JSON Web Token for authentication with the NATS server.
+
+- **NKey Seed** (optional)
+
+    NKey seed for authentication with the NATS server.
+
+- **TLS** (optional)
+
+    Enable TLS/SSL for secure connections to the NATS server (default: `false`).
+
+## JetStream vs. core NATS
+
+Unlike the [NATS sink](/reference/sinks/nats), which uses fire-and-forget publishing, the NATS JetStream sink uses request-reply publishing. Sequin waits for a publish acknowledgment from the JetStream server before marking the message as delivered. This provides:
+
+- **At-least-once delivery**: Messages are guaranteed to reach the stream or Sequin will retry.
+- **Persistence**: Messages are stored in the stream and can be replayed by consumers.
+- **Server-side deduplication**: The `Nats-Msg-Id` header included with each message enables JetStream's duplicate window to deduplicate replayed messages.
+
+## Message format
+
+Sequin sends messages to NATS JetStream as JSON. You can find the shape of the messages in the [messages reference](/reference/messages).
+
+## Subject naming
+
+By default, messages are published to subjects using the following pattern:
+
+```
+sequin.<database_name>.<schema_name>.<table_name>.<action>
+```
+
+For example, if you're streaming changes from a table called `products` in the `public` schema of a database called `shop`:
+
+- `sequin.shop_prod.public.products.insert`
+- `sequin.shop_prod.public.products.update`
+- `sequin.shop_prod.public.products.delete`
+
+Your JetStream stream must be configured to capture these subjects (e.g., with a subject filter of `sequin.>`).
+
+You can use a [routing function](/reference/routing) to generate your own dynamic subjects.
+
+## Message headers
+
+Each message includes the following NATS header:
+
+- `Nats-Msg-Id`: A unique Sequin identifier for the message, used for JetStream server-side deduplication within the stream's duplicate window.
+
+## Retry behavior
+
+If Sequin does not receive a JetStream publish acknowledgment within the configured publish timeout, or if the stream returns an error, Sequin will retry the message indefinitely with exponential backoff up to a maximum of roughly 3 minutes.
+
+## Message ordering
+
+JetStream preserves message order within a subject. Messages are published in the same order they are received from your source table.
+
+## Debugging
+
+You can view the status of your NATS JetStream sink in the Sequin web console.
+
+On the "Messages" tab, you can see which messages are in-flight to JetStream, which messages Sequin is unable to deliver, and recently delivered messages.
+
+Messages that Sequin is unable to deliver will have a "Deliver count" greater than `1`. You can click on a message to see more details, including the last error response from the JetStream server.
