@@ -513,6 +513,24 @@ destination:
   tls: false                     # Optional, enable TLS, default: false
 ```
 
+#### NATS JetStream sink
+For publishing changes to NATS JetSteam:
+```yaml
+destination:
+  type: "nats-jetstream"        # Required
+  host: "localhost"             # Required
+  port: 4222                    # Required
+  stream_name: "SEQUIN"         # Required
+  domain: ""                    # Optional
+  publish_timeout: 5000         # Optional
+  username: "nats_user"         # Optional
+  password: "nats_password"     # Optional
+  jwt: "your-jwt-token"         # Optional
+  nkey_seed: "your-nkey-seed"   # Optional
+  tls: false                    # Optional, enable TLS, default: false
+  
+```
+
 #### S2 sink
 For publishing changes to S2:
 ```yaml
